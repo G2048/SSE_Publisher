@@ -30,8 +30,10 @@ class Consumer:
         self._subscribe(topics, on_assign=on_assign, **kwargs)
 
     def _subscribe(self, topics: list, on_assign=None, **kwargs):
-        if not on_assign:
+        if on_assign is None:
             on_assign = self.reset_offset
+        logger.debug(f'Subscribed to {topics=}!')
+        logger.debug(f'{on_assign=}')
         self.consumer.subscribe(topics, on_assign=on_assign, **kwargs)
 
     def stop(self):
@@ -94,11 +96,12 @@ class Consumer:
             for partition in partitions:
                 partition.offset = kafka.OFFSET_BEGINNING
             """Set the consumer partition assignment to the provided list of TopicPartition and start consuming."""
-            consumer.assign(partitions)
+            print(consumer.assign(partitions))
             """Returns the current partition assignment."""
             # self.consumer.assignment()
             """Return this client’s broker-assigned group member id."""
-            self.consumer.memberid()
+            # self.consumer.memberid()
+
 
 def action(msg):
     logger.info(dir(msg))
@@ -127,9 +130,25 @@ if __name__ == '__main__':
     settings = AppSettings()
     topic = settings.tn_events
     kafka_settings = KafkaConsumerCredentials(bootstrap_servers=settings.kafka_broker, group_id=settings.group_id)
+    kafka_settings.conf.update(
+        {
+            'auto.offset.reset': 'earliest',
+        }
+    )
 
+    logger.debug(kafka_settings.conf)
     consumer = Consumer(kafka_settings.conf)
     consumer.start()
     consumer.subscribe(topic)
-    consumer.action = action
-    consumer.poll_loop(1.5)
+    # consumer.action = action
+    # consumer.poll_loop(1.5)
+    while True:
+        msg = consumer.poll(1.5)
+        if msg is None:
+            print('None')
+            continue
+        msg_error = msg.error()
+        if msg_error:
+            logger.error(f"Consumer error: {msg_error}")
+            continue
+        logger.debug(msg.value())

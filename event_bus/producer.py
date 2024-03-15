@@ -105,6 +105,6 @@ if __name__ == '__main__':
     async_producer.add_settings('client.id', socket.gethostname())
     async_producer.start()
 
-    for i in range(10):
+    for i in range(22):
         async_producer.produce(topic, key='key=async_producer', value=f'Hello world {i}')
         async_producer.stop()

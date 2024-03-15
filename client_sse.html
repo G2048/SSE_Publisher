@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        #kafka_event {
+          background-color: black;
+          color:white;
+          height:600px;
+          overflow-x: hidden;
+          overflow-y: auto;
+          text-align: left;
+          padding-left:10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Server Logs:</h1>
+<div id="kafka_event">
+</div>
+
+<!--document.getElementById("logs").innerHTML +=-->
+<script>
+<!--    var source = new EventSource("http://localhost:8000/stream-logs");-->
+    var source = new EventSource("http://localhost:8666/sse/stream");
+        source.onmessage = function(event) {
+            document.getElementById("kafka_event").innerHTML += event.data + "<br>";
+        };
+</script>
+
+</body>
+</html>

@@ -1,13 +1,20 @@
 import socket
+import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 
-from fastapi import FastAPI
-from fastapi.params import Depends
+from fastapi import FastAPI, Request, Depends
 from sse_starlette import EventSourceResponse
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse
 
 from dependencies import get_consumer, get_producer, get_topic
-from event_bus import Producer, Consumer, KafkaConsumerCredentials, KafkaProducerCredentials, AppSettings
+from event_bus import (
+    Producer, Consumer, KafkaConsumerCredentials, KafkaProducerCredentials, AppSettings,
+    LoggerSettings,
+)
+
+logger = LoggerSettings().logger
 
 html = """
 <!DOCTYPE html>
@@ -17,14 +24,19 @@ html = """
     </head>
     <body>
         <script>
-            const evtSource = new EventSource("http://localhost:8666/sse/stream");
-            evtSource.addEventListener("message", function(event) {
-                // Logic to handle status updates
-                console.log(event.data)
-            });  
+            var source = new EventSource("http://localhost:8666/sse/stream");
+            source.onmessage = function(event) {
+                document.getElementById("logs").innerHTML += event.data + "<br>";
+            };
         </script>
     </body>
 </html>
+"""
+"""
+            evtSource.addEventListener("data", function(event) {
+                // Logic to handle status updates
+                console.log(event.data)
+            });  
 """
 
 
@@ -41,8 +53,6 @@ async def lifespan(app: FastAPI):
     kafka_settings = KafkaConsumerCredentials(bootstrap_servers=settings.kafka_broker, group_id=settings.group_id)
     consumer = Consumer(kafka_settings.conf)
     consumer.start()
-    consumer.subscribe(topic)
-    consumer.poll(1.5)
 
     app.state.topic = topic
     app.state.producer = producer
@@ -55,6 +65,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def db_session_middleware(request: Request, call_next):
+    request.state.consumer = request.app.state.consumer
+    request.state.producer = request.app.state.producer
+    request.state.topic = request.app.state.topic
+    response = await call_next(request)
+    return response
+
 
 @app.get("/sse/watch")
 async def get():
@@ -62,8 +89,11 @@ async def get():
 
 
 @app.get("/sse/produce")
-def get(topic: str = Depends(get_topic), producer: Producer = Depends(get_producer)):
-    len_queue = producer.produce(topic=topic, key="hello", value="world")
+def produce(message: str = None, topic: str = Depends(get_topic), producer: Producer = Depends(get_producer)):
+    if not message:
+        message = 'Hello World!'
+    for _ in range(22):
+        len_queue = producer.produce(topic=topic, key="from fastapi", value=message)
     if len_queue == 0:
         return {'published': True}
     return {'published': False}
@@ -71,13 +101,24 @@ def get(topic: str = Depends(get_topic), producer: Producer = Depends(get_produc
 
 def subscribe_topic(consumer: Consumer, topic: str):
     consumer.subscribe(topic)
+    logger.debug(f'Subscribed to {topic=}!')
     while True:
-        messsage = consumer.poll(1.0)
-        yield {"event": "message", "data": messsage}
+        message = consumer.poll(1.0)
+        # message = 'Test message'
+        time.sleep(0.5)
+        if message is None:
+            continue
+        responce = message.key().decode('utf-8') + ': ' + message.value().decode('utf-8')
+        data = {"data": responce}
+        logger.debug(f'Responce {data=}')
+        yield data
 
 
 @app.get("/sse/stream")
 def stream(topic: str = Depends(get_topic), consumer: Consumer = Depends(get_consumer)):
+    settings = AppSettings()
+    settings.group_id = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    logger.debug(f'Request {topic=}')
     return EventSourceResponse(subscribe_topic(consumer, topic))
 
 
@@ -85,3 +126,13 @@ if __name__ == '__main__':
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8666)
+    """
+    Check:
+    1. Press F12
+    2. Open console
+    3. Copipaste:
+    var source = new EventSource("http://localhost:8666/sse/stream");
+    source.onmessage = function get_mess(event) {
+        console.log(event.data)    
+    }
+    """
