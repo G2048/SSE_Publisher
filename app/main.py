@@ -6,7 +6,7 @@ from datetime import datetime
 from fastapi import FastAPI, Request, Depends
 from sse_starlette import EventSourceResponse
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, StreamingResponse
 
 from dependencies import get_consumer, get_producer, get_topic
 from event_bus import (
@@ -116,10 +116,15 @@ def subscribe_topic(consumer: Consumer, topic: str):
 
 @app.get("/sse/stream")
 def stream(topic: str = Depends(get_topic), consumer: Consumer = Depends(get_consumer)):
-    settings = AppSettings()
-    settings.group_id = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    # settings = AppSettings()
+    # settings.group_id = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     logger.debug(f'Request {topic=}')
     return EventSourceResponse(subscribe_topic(consumer, topic))
+
+
+@app.get("/http/stream")
+def http_stream(topic: str = Depends(get_topic), consumer: Consumer = Depends(get_consumer)):
+    return StreamingResponse(subscribe_topic(consumer, topic))
 
 
 if __name__ == '__main__':
