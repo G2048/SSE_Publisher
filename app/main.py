@@ -1,7 +1,6 @@
 import socket
 import time
 from contextlib import asynccontextmanager
-from datetime import datetime
 
 from fastapi import FastAPI, Request, Depends
 from sse_starlette import EventSourceResponse
@@ -23,10 +22,12 @@ html = """
         <title>SSE</title>
     </head>
     <body>
+        <h1>Server Response:</h1>
+        <div id="kafka_event">
         <script>
             var source = new EventSource("http://localhost:8666/sse/stream");
             source.onmessage = function(event) {
-                document.getElementById("logs").innerHTML += event.data + "<br>";
+                document.getElementById("kafka_event").innerHTML += event.key + ": " + event.value + "<br>";
             };
         </script>
     </body>
