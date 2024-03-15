@@ -1,6 +1,6 @@
 import socket
+from contextlib import asynccontextmanager
 
-# from aioredis import Channel, Redis
 from fastapi import FastAPI
 from fastapi.params import Depends
 from sse_starlette import EventSourceResponse
@@ -27,11 +27,9 @@ html = """
 </html>
 """
 
-app = FastAPI()
 
-
-@app.on_event("startup")
-async def on_startup() -> None:
+@asynccontextmanager
+def lifespan(app: FastAPI):
     settings = AppSettings()
     topic = settings.tn_events
 
@@ -50,11 +48,12 @@ async def on_startup() -> None:
     app.state.producer = producer
     app.state.consumer = consumer
 
-
-@app.on_event("shutdown")
-async def on_shutdown() -> None:
+    yield
     app.state.producer.stop()
     app.state.consumer.stop()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/sse/watch")
