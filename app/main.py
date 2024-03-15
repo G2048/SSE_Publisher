@@ -109,7 +109,7 @@ def subscribe_topic(consumer: Consumer, topic: str):
         if message is None:
             continue
         responce = message.key().decode('utf-8') + ': ' + message.value().decode('utf-8')
-        data = {"data": responce}
+        data = {"data": responce, "key": message.key().decode('utf-8'), "value": message.value().decode('utf-8')}
         logger.debug(f'Responce {data=}')
         yield data
 
