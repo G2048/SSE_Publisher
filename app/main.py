@@ -29,7 +29,7 @@ html = """
 
 
 @asynccontextmanager
-def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI):
     settings = AppSettings()
     topic = settings.tn_events
 
