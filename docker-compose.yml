@@ -1,0 +1,68 @@
+version: '2'
+
+networks:
+  app-tier:
+    driver: bridge
+
+services:
+  kafka:
+    image: 'apache/kafka:3.7.0'
+#    hostname: kafka
+    container_name: kafka
+    networks:
+      - app-tier
+    ports:
+      - "9092:9092"
+      - "9997:9997"
+    environment:
+      KAFKA_ENABLE_KRAFT: true
+      KAFKA_BROKER_ID: 42
+      KAFKA_NODE_ID: 42
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER.QUORUM.VOTERS: 42@kafka:29093
+      KAFKA_CONTROLLER.LISTENER.NAMES: CONTROLLER
+      KAFKA_INTER.BROKER.LISTENER.NAME: PLAINTEXT
+
+#      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT, PLAINTEXT_HOST:PLAINTEXT, CONTROLLER:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://kafka:29092, CONTROLLER://kafka:29093, PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://localhost:9092, PLAINTEXT://kafka:29092
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      # JMX(Java Management Extensions)  — это стандартные средства для мониторинга и управления приложениями, работающими на Java.
+      # В рамках Apache Kafka, JMX позволяет мониторить различные метрики работы брокера.
+      # Для наших нужд достаточно указать порт и имя хоста для JMX, который, как вы возможно догадались, в дальнейшем будет использоваться в kafka-ui.
+      KAFKA_JMX_PORT: 9997
+      KAFKA_JMX_HOSTNAME: kafka
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    networks:
+      - app-tier
+    ports:
+      - 8082:8080
+    depends_on:
+      - kafka
+    environment:
+      # Нужна для изменения конфигурации kafka-ui в реальном времени.
+      DYNAMIC_CONFIG_ENABLED: true
+      KAFKA_CLUSTERS_0_NAME: Default Kafka Cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+#    volumes:
+#      - ~/kui/config.yml:/etc/kafkaui/dynamic_config.yaml
+
+  # Алгоритм Настройки:
+  # 1. В UI: нажимаем кнопку "configure new cluster "
+  # 2. Cluster name - Можете указать просто как "Kafka Cluster"
+  # 3. Bootstrap Servers - localhost:29092 (Параметр KAFKA_ADVERTISED_LISTENERS)
+  # 4. Metrics:
+  #    - metrics type -> JMX
+  #    - port -> 9997 или как указано в конфигурации
