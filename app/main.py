@@ -24,7 +24,7 @@ with open("client_sse.html", "r", encoding="utf-8") as html:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    topic = SETTINGS.tn_events
+    topic = SETTINGS.topic
 
     kafka_settings = KafkaProducerCredentials(bootstrap_servers=SETTINGS.kafka_broker)
     kafka_settings.conf.update({'client.id': socket.gethostname()})

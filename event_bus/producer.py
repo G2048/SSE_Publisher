@@ -87,7 +87,7 @@ class AsyncProducer(Producer):
 
 if __name__ == '__main__':
     settings = AppSettings()
-    topic = settings.tn_events
+    topic = settings.topic
 
     kafka_settings = KafkaProducerCredentials(bootstrap_servers=settings.kafka_broker)
     kafka_settings.conf.update(

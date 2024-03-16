@@ -122,7 +122,7 @@ class AsyncConsumer(Consumer):
 
 if __name__ == '__main__':
     settings = AppSettings()
-    topic = settings.tn_events
+    topic = settings.topic
     kafka_settings = KafkaConsumerCredentials(bootstrap_servers=settings.kafka_broker, group_id=settings.group_id)
     kafka_settings.conf.update(
         {
