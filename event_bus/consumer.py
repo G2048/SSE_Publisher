@@ -15,13 +15,7 @@ class Consumer:
         self._command = ''
         self._cancelled = False
         self._action = None
-
-    def add_settings(self, conf_key: str, value: str):
-        self.kafka_settings.update({conf_key: value})
-
-    def start(self):
         self.consumer = kafka.Consumer(self.kafka_settings)
-        return self
 
     def subscribe(self, topic: str, on_assign=None, **kwargs):
         self._subscribe([topic], on_assign=on_assign, **kwargs)
@@ -36,7 +30,7 @@ class Consumer:
         logger.debug(f'{on_assign=}')
         self.consumer.subscribe(topics, on_assign=on_assign, **kwargs)
 
-    def stop(self):
+    def close(self):
         self.consumer.close()
         self._cancelled = True
 
@@ -55,7 +49,7 @@ class Consumer:
             logger.warning('Error occurned!', exc_info=True)
         finally:
             # Leave group and commit final offsets
-            self.stop()
+            self.close()
 
     def _loop(self, timeout):
         logger.info('Start Loop...')
@@ -121,9 +115,9 @@ class AsyncConsumer(Consumer):
         while not self._cancelled:
             self.poll(1.0)
 
-    def stop(self):
+    def close(self):
         self.__poll_thread.join()
-        super().stop()
+        super().close()
 
 
 if __name__ == '__main__':
@@ -138,7 +132,6 @@ if __name__ == '__main__':
 
     logger.debug(kafka_settings.conf)
     consumer = Consumer(kafka_settings.conf)
-    consumer.start()
     consumer.subscribe(topic)
     # consumer.action = action
     # consumer.poll_loop(1.5)

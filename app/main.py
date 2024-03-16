@@ -27,15 +27,13 @@ async def lifespan(app: FastAPI):
     topic = SETTINGS.tn_events
 
     kafka_settings = KafkaProducerCredentials(bootstrap_servers=SETTINGS.kafka_broker)
+    kafka_settings.conf.update({'client.id': socket.gethostname()})
     producer = Producer(kafka_settings.conf)
-    producer.add_settings('client.id', socket.gethostname())
-    producer.start()
-
     app.state.topic = topic
     app.state.producer = producer
 
     yield
-    app.state.producer.stop()
+    app.state.producer.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -67,7 +65,8 @@ async def get():
 def produce(
     message: str = 'Hello World', count: int = 12, topic: str = Depends(get_topic),
     producer: Producer = Depends(get_producer)
-    ):
+):
+    len_queue = 0
     for _ in range(count):
         len_queue = producer.produce(topic=topic, key="from fastapi", value=message)
     if len_queue == 0:
@@ -93,14 +92,14 @@ def subscribe_topic(consumer: Consumer, topic: str):
         data = {"data": responce}
         logger.debug(f'Responce {data=}')
         yield data
-    consumer.stop()
+    consumer.close()
 
 
 @app.get("/sse/stream")
 def stream(topic: str = Depends(get_topic)):
     SETTINGS.group_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     kafka_settings = KafkaConsumerCredentials(bootstrap_servers=SETTINGS.kafka_broker, group_id=SETTINGS.group_id)
-    consumer = Consumer(kafka_settings.conf).start()
+    consumer = Consumer(kafka_settings.conf)
 
     logger.debug(f'Request {topic=}')
     return EventSourceResponse(subscribe_topic(consumer, topic))
@@ -109,7 +108,7 @@ def stream(topic: str = Depends(get_topic)):
 @app.get("/http/stream")
 def http_stream(topic: str = Depends(get_topic)):
     kafka_settings = KafkaConsumerCredentials(bootstrap_servers=SETTINGS.kafka_broker, group_id=SETTINGS.group_id)
-    consumer = Consumer(kafka_settings.conf).start()
+    consumer = Consumer(kafka_settings.conf)
     return StreamingResponse(subscribe_topic(consumer, topic))
 
 

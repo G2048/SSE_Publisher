@@ -14,13 +14,7 @@ class Producer:
 
     def __init__(self, settings: dict):
         self.kafka_settings = settings
-
-    def add_settings(self, conf_key: str, value: str):
-        self.kafka_settings.update({conf_key: value})
-
-    def start(self):
         self.producer = kafka.Producer(self.kafka_settings)
-        return self
 
     def produce(self, topic, key, value, callback=None, **kwargs):
         """
@@ -96,13 +90,15 @@ if __name__ == '__main__':
     topic = settings.tn_events
 
     kafka_settings = KafkaProducerCredentials(bootstrap_servers=settings.kafka_broker)
+    kafka_settings.conf.update(
+        {
+            'client.id': socket.gethostname()
+        }
+    )
     producer = Producer(kafka_settings.conf)
-    producer.add_settings('client.id', socket.gethostname())
-    producer.start()
     producer.produce(topic, key='key=sync_producer', value='hello world')
 
     async_producer = AsyncProducer(kafka_settings.conf)
-    async_producer.add_settings('client.id', socket.gethostname())
     async_producer.start()
 
     for i in range(22):
