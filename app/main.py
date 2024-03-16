@@ -9,11 +9,11 @@ from sse_starlette import EventSourceResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse, StreamingResponse
 
-from settings import AppSettings, LoggerSettings
 from dependencies import get_producer, get_topic
 from event_bus import (
-    Producer, Consumer, KafkaConsumerCredentials, KafkaProducerCredentials
+    Producer, Consumer, KafkaConsumerCredentials, KafkaProducerCredentials,
 )
+from settings import AppSettings, LoggerSettings
 
 logger = LoggerSettings().logger
 SETTINGS = AppSettings()
@@ -34,7 +34,6 @@ async def lifespan(app: FastAPI):
     app.state.producer = producer
 
     yield
-    app.state.producer.close()
 
 
 app = FastAPI(lifespan=lifespan)
