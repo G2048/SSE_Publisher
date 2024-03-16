@@ -20,13 +20,11 @@
 <div id="kafka_event">
 </div>
 
-<!--document.getElementById("logs").innerHTML +=-->
 <script>
 <!--    var source = new EventSource("http://localhost:8000/stream-logs");-->
     var source = new EventSource("http://localhost:8666/sse/stream");
         source.onmessage = function(event) {
-<!--            document.getElementById("kafka_event").innerHTML += event.data + "<br>";-->
-            document.getElementById("kafka_event").innerHTML += event.key + ": " + event.value + "<br>";
+            document.getElementById("kafka_event").innerHTML += event.data + "<br>";
         };
 </script>
 
