@@ -9,7 +9,7 @@ from sse_starlette import EventSourceResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse, StreamingResponse
 
-from dependencies import get_producer, get_topic
+from dependencies import get_producer, get_topic, get_cookies, get_headers, listener_disconnect
 from event_bus import (
     Producer, Consumer, KafkaConsumerCredentials, KafkaProducerCredentials,
 )
@@ -44,6 +44,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Transaction-Id"],
 )
 
 
@@ -74,11 +75,16 @@ def produce(
     return {'published': False}
 
 
-def subscribe_topic(consumer: Consumer, topic: str):
+async def subscribe_topic(consumer: Consumer, topic: str, listener_disconnect: callable):
     consumer.subscribe(topic)
     logger.debug(f'Subscribed to {topic=}!')
     transaction_id = uuid.uuid4()
     while True:
+        disconnect = await listener_disconnect()
+        if disconnect:
+            logger.debug(f'Client disconnected: {disconnect=}')
+            break
+
         message = consumer.poll(1.0)
         if message is None:
             continue
@@ -94,17 +100,25 @@ def subscribe_topic(consumer: Consumer, topic: str):
         data = {"data": responce}
         logger.debug(f'Responce {data=}')
         yield data
+
     consumer.close()
 
 
 @app.get("/sse/stream")
-def stream(topic: str = Depends(get_topic)):
+async def stream(
+    topic: str = Depends(get_topic),
+    client: str = Depends(get_headers),
+    cookies: str = Depends(get_cookies),
+    listener_client: callable = Depends(listener_disconnect),
+):
+    logger.debug(f'Client is: {client=}')
+    logger.debug(f'Client cookies is: {cookies=}')
     SETTINGS.group_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     kafka_settings = KafkaConsumerCredentials(bootstrap_servers=SETTINGS.kafka_broker, group_id=SETTINGS.group_id)
     consumer = Consumer(kafka_settings.conf)
 
     logger.debug(f'Request {topic=}')
-    return EventSourceResponse(subscribe_topic(consumer, topic))
+    return EventSourceResponse(subscribe_topic(consumer, topic, listener_client))
 
 
 @app.get("/http/stream")
@@ -117,7 +131,7 @@ def http_stream(topic: str = Depends(get_topic)):
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8666)
+    uvicorn.run(app, host="0.0.0.0", port=8666, forwarded_allow_ips="*", proxy_headers=True)
     """
     Check:
     1. Press F12
