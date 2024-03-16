@@ -8,10 +8,10 @@ from sse_starlette import EventSourceResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse, StreamingResponse
 
+from settings import AppSettings, LoggerSettings
 from dependencies import get_producer, get_topic
 from event_bus import (
-    Producer, Consumer, KafkaConsumerCredentials, KafkaProducerCredentials, AppSettings,
-    LoggerSettings,
+    Producer, Consumer, KafkaConsumerCredentials, KafkaProducerCredentials
 )
 
 logger = LoggerSettings().logger

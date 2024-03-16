@@ -5,7 +5,8 @@ from threading import Thread
 import confluent_kafka as kafka
 from confluent_kafka import KafkaException
 
-from event_bus.models import AppSettings, KafkaProducerCredentials, LoggerSettings
+from event_bus.models import KafkaProducerCredentials
+from settings import AppSettings, LoggerSettings
 
 logger = LoggerSettings().logger
 

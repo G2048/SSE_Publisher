@@ -1,9 +1,9 @@
 from .consumer import Consumer
 from .producer import Producer, AsyncProducer
-from .models import AppSettings, KafkaProducerCredentials, KafkaConsumerCredentials, LoggerSettings
+from .models import  KafkaProducerCredentials, KafkaConsumerCredentials
 
 __all__ = [
     "Consumer", "Producer", "AsyncProducer",
-    "AppSettings", "KafkaProducerCredentials",
-    "KafkaConsumerCredentials", "LoggerSettings"
+    "KafkaProducerCredentials",
+    "KafkaConsumerCredentials",
 ]

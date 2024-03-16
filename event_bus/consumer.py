@@ -3,7 +3,8 @@ from threading import Thread
 
 import confluent_kafka as kafka
 
-from event_bus.models import AppSettings, KafkaConsumerCredentials, LoggerSettings
+from event_bus.models import KafkaConsumerCredentials
+from settings import AppSettings, LoggerSettings
 
 logger = LoggerSettings().logger
 
