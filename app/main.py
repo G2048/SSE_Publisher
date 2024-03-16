@@ -1,5 +1,6 @@
 import socket
 import time
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
 
@@ -77,6 +78,7 @@ def produce(
 def subscribe_topic(consumer: Consumer, topic: str):
     consumer.subscribe(topic)
     logger.debug(f'Subscribed to {topic=}!')
+    transaction_id = uuid.uuid4()
     while True:
         message = consumer.poll(1.0)
         if message is None:
@@ -88,7 +90,8 @@ def subscribe_topic(consumer: Consumer, topic: str):
             continue
 
         time.sleep(0.5)
-        responce = message.key().decode('utf-8') + ': ' + message.value().decode('utf-8')
+        responce = consumer.convert_to_dict(message, transaction_id=transaction_id)
+        # responce = message.key().decode('utf-8') + ': ' + message.value().decode('utf-8')
         data = {"data": responce}
         logger.debug(f'Responce {data=}')
         yield data

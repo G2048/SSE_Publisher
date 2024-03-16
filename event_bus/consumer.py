@@ -3,7 +3,7 @@ from threading import Thread
 
 import confluent_kafka as kafka
 
-from event_bus.models import KafkaConsumerCredentials
+from event_bus.models import KafkaConsumerCredentials, EventModel
 from settings import AppSettings, LoggerSettings
 
 logger = LoggerSettings().logger
@@ -96,6 +96,22 @@ class Consumer:
             # self.consumer.assignment()
             """Return this client’s broker-assigned group member id."""
             # self.consumer.memberid()
+
+    @staticmethod
+    def convert_to_event_model(msg, **kwargs):
+        return EventModel(
+            key=msg.key(),
+            message=msg.value(),
+            **kwargs
+        )
+
+    @staticmethod
+    def convert_to_dict(msg, **kwargs):
+        return EventModel(
+            key=msg.key(),
+            message=msg.value(),
+            **kwargs
+        ).model_dump()
 
 
 def action(msg):

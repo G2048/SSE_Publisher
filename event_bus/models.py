@@ -1,4 +1,14 @@
-from pydantic import BaseModel
+from datetime import datetime
+from uuid import UUID, uuid4
+
+from pydantic import BaseModel, Field
+
+
+class EventModel(BaseModel):
+    timestamp: datetime = Field(default_factory=datetime.now)
+    key: str = None
+    message: str
+    transaction_id: UUID = Field(default_factory=uuid4)
 
 
 class KafkaProducerCredentials(BaseModel):
