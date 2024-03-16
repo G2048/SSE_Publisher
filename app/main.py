@@ -9,7 +9,7 @@ from sse_starlette import EventSourceResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse, StreamingResponse
 
-from dependencies import get_producer, get_topic, get_cookies, get_headers, listener_disconnect
+from dependencies import get_producer, get_topic, get_cookies, get_headers
 from event_bus import (
     Producer, Consumer, KafkaConsumerCredentials, KafkaProducerCredentials,
 )
@@ -49,7 +49,7 @@ app.add_middleware(
 
 
 @app.middleware("http")
-async def db_session_middleware(request: Request, call_next):
+async def settings_middleware(request: Request, call_next):
     # request.state.consumer = request.app.state.consumer
     request.state.producer = request.app.state.producer
     request.state.topic = request.app.state.topic
@@ -75,16 +75,11 @@ def produce(
     return {'published': False}
 
 
-async def subscribe_topic(consumer: Consumer, topic: str, listener_disconnect: callable):
+def subscribe_topic(consumer: Consumer, topic: str):
     consumer.subscribe(topic)
     logger.debug(f'Subscribed to {topic=}!')
     transaction_id = uuid.uuid4()
     while True:
-        disconnect = await listener_disconnect()
-        if disconnect:
-            logger.debug(f'Client disconnected: {disconnect=}')
-            break
-
         message = consumer.poll(1.0)
         if message is None:
             continue
@@ -96,7 +91,6 @@ async def subscribe_topic(consumer: Consumer, topic: str, listener_disconnect: c
 
         time.sleep(0.5)
         responce = consumer.convert_to_dict(message, transaction_id=transaction_id)
-        # responce = message.key().decode('utf-8') + ': ' + message.value().decode('utf-8')
         data = {"data": responce}
         logger.debug(f'Responce {data=}')
         yield data
@@ -105,20 +99,19 @@ async def subscribe_topic(consumer: Consumer, topic: str, listener_disconnect: c
 
 
 @app.get("/sse/stream")
-async def stream(
+def stream(
     topic: str = Depends(get_topic),
     client: str = Depends(get_headers),
     cookies: str = Depends(get_cookies),
-    listener_client: callable = Depends(listener_disconnect),
 ):
     logger.debug(f'Client is: {client=}')
     logger.debug(f'Client cookies is: {cookies=}')
     SETTINGS.group_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     kafka_settings = KafkaConsumerCredentials(bootstrap_servers=SETTINGS.kafka_broker, group_id=SETTINGS.group_id)
     consumer = Consumer(kafka_settings.conf)
-
+    listener_client = None
     logger.debug(f'Request {topic=}')
-    return EventSourceResponse(subscribe_topic(consumer, topic, listener_client))
+    return EventSourceResponse(subscribe_topic(consumer, topic))
 
 
 @app.get("/http/stream")

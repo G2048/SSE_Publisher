@@ -1,10 +1,6 @@
 from fastapi import Request
 
 
-def listener_disconnect(request: Request) -> None:
-    return request.is_disconnected
-
-
 def get_headers(request: Request):
     return request.headers
 
