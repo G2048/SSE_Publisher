@@ -106,9 +106,15 @@ def subscribe_topic(consumer: Consumer, topic: str):
     while True:
         message = consumer.poll(1.0)
         # message = 'Test message'
-        time.sleep(0.5)
         if message is None:
             continue
+
+        msg_error = message.error()
+        if msg_error:
+            logger.error(f"Consumer error: {msg_error}")
+            continue
+
+        time.sleep(0.5)
         responce = message.key().decode('utf-8') + ': ' + message.value().decode('utf-8')
         data = {"data": responce, "key": message.key().decode('utf-8'), "value": message.value().decode('utf-8')}
         logger.debug(f'Responce {data=}')
