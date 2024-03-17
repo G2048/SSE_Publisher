@@ -22,6 +22,9 @@ SETTINGS = AppSettings()
 with open("client_sse.html", "r", encoding="utf-8") as html:
     HTML = html.read()
 
+with open("client_sse_alert.html", "r", encoding="utf-8") as html:
+    HTML_ALERT = html.read()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -58,8 +61,18 @@ async def settings_middleware(request: Request, call_next):
 
 
 @app.get("/sse/watch")
-async def get():
+async def get_html():
     return HTMLResponse(HTML)
+
+
+@app.get("/sse/watch/alert")
+async def get_alert():
+    return HTMLResponse(HTML_ALERT)
+
+
+@app.get("/sse/database/create")
+async def create(account_id: int):
+    return None
 
 
 @app.get("/sse/produce")

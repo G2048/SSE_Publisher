@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SSE ALERT</title>
+</head>
+<body>
+
+<h1>SSE ALERT</h1>
+<script>
+    var server = new EventSource("http://localhost:8666/sse/stream");
+    server.onmessage = function(event) {
+        window.alert(event.data);
+    }
+</script>
+
+</body>
+</html>

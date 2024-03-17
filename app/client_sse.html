@@ -21,7 +21,6 @@
 </div>
 
 <script>
-<!--    var source = new EventSource("http://localhost:8000/stream-logs");-->
     var source = new EventSource("http://localhost:8666/sse/stream");
         source.onmessage = function(event) {
             document.getElementById("kafka_event").innerHTML += event.data + "<br>";
