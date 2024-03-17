@@ -1,6 +1,7 @@
 import socket
 import time
 import uuid
+import json
 from contextlib import asynccontextmanager
 from datetime import datetime
 
@@ -106,7 +107,7 @@ def subscribe_topic(consumer: Consumer, topic: str):
         responce = consumer.convert_to_dict(message, transaction_id=transaction_id)
         data = {"data": responce}
         logger.debug(f'Responce {data=}')
-        yield data
+        yield json.dumps(data)
 
     consumer.close()
 

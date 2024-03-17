@@ -7,10 +7,22 @@
 <body>
 
 <h1>SSE ALERT</h1>
+<div id="eventContainer"></div>
 <script>
-    var server = new EventSource("http://localhost:8666/sse/stream");
-    server.onmessage = function(event) {
-        window.alert(event.data);
+    var serverEvent = new EventSource("http://localhost:8666/sse/stream");
+    serverEvent.onmessage = function(event) {
+        const json_obj = JSON.parse(event.data);
+        alert(JSON.stringify(json_obj));
+    };
+    serverEvent.onopen = function(event) {
+        window.alert('Connection opened');
+    };
+
+    serverEvent.onerror = function(event) {
+        window.alert('Error occurred:', event);
+    };
+    serverEvent.onclose = function(event) {
+        window.alert('Connection closed');
     }
 </script>
 
