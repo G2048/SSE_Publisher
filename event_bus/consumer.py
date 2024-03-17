@@ -98,7 +98,7 @@ class Consumer:
             # self.consumer.memberid()
 
     @staticmethod
-    def convert_to_event_model(msg, **kwargs):
+    def serialize_to_event_model(msg, **kwargs):
         return EventModel(
             key=msg.key(),
             message=msg.value(),
@@ -106,7 +106,7 @@ class Consumer:
         )
 
     @staticmethod
-    def convert_to_dict(msg, **kwargs):
+    def serialize_to_dict(msg, **kwargs):
         return EventModel(
             key=msg.key(),
             message=msg.value(),
