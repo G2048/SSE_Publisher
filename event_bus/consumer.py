@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from threading import Thread
 
 import confluent_kafka as kafka
@@ -136,6 +137,10 @@ class Consumer:
             message=msg.value().decode('utf-8'),
             **kwargs
         ).model_dump()
+
+    @staticmethod
+    def message_to_timestamp(msg):
+        return datetime.fromtimestamp(msg.timestamp()[1] / 1000).isoformat()
 
 
 def action(msg):
