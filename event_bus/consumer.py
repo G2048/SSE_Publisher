@@ -10,33 +10,49 @@ logger = LoggerSettings().logger
 
 
 class Consumer:
-
-    def __init__(self, settings: dict):
+    def __init__(self, settings: dict, topic: str, partition: int = 0):
         self.kafka_settings = settings
-        self._command = ''
-        self._cancelled = False
-        self._action = None
-        self.consumer = kafka.Consumer(self.kafka_settings)
+        self.topic = topic
+        self.partition = partition
         self.topic_partition = kafka.TopicPartition
+        self.consumer = kafka.Consumer(self.kafka_settings)
+        self.on_assign = None
+        self._action = None
 
-    def subscribe(self, topic: str, partition: int = 0, on_assign=None, **kwargs) -> list:
-        return self._subscribe([topic], partition, on_assign=on_assign, **kwargs)
-
-    def list_subscribe(self, topics: list, partition: int = 0, on_assign=None, **kwargs) -> list:
-        return self._subscribe(topics, partition, on_assign=on_assign, **kwargs)
+        self._subscribe([self.topic], self.partition, on_assign=self.on_assign)
 
     def _subscribe(self, topics: list, partition: int = 0, on_assign=None, **kwargs) -> list:
         if on_assign is None:
-            on_assign = self.reset_offset
+            on_assign = self.reset_offset_command
         logger.debug(f'Subscribed to {topics=}!')
         logger.debug(f'{on_assign=}')
         for topic in topics:
-            self.consumer.assign([self.topic_partition(topic, partition=partition)])
+            self.consumer.assign([self.topic_partition(topic, partition=self.partition)])
         # self.consumer.subscribe(topics, on_assign=on_assign, **kwargs)
+        # self.reset_offset(topic, partition=partition)
         return self.consumer.assignment()
 
     def commit(self, message=None):
         self.consumer.commit(message)
+
+    def reset_offset(self, offset=kafka.OFFSET_BEGINNING):
+        self.consumer.seek(kafka.TopicPartition(self.topic, partition=self.partition, offset=offset))
+
+    def min_offset(self):
+        return self.__get_offsets()[0]
+
+    def max_offset(self):
+        return self.__get_offsets()[1] - 1
+
+    # Возвращает минимальный и последний+1 оффсеты
+    def __get_offsets(self):
+        return self.consumer.get_watermark_offsets(self.topic_partition(self.topic, partition=self.partition))
+
+    def current_offset(self):
+        return self.__get_current_offset().offset - 1
+
+    def __get_current_offset(self):
+        return self.consumer.position([self.topic_partition(self.topic, partition=self.partition)])[0]
 
     def close(self):
         self.consumer.close()
@@ -93,10 +109,11 @@ class Consumer:
     def command(self, command):
         self._command = command
 
-    def reset_offset(self, consumer, partitions):
+    def reset_offset_command(self, consumer, partitions):
         if self.command == 'reset':
             for partition in partitions:
                 partition.offset = kafka.OFFSET_BEGINNING
+                logger.debug(f'Reset offset {partition=}')
             """Set the consumer partition assignment to the provided list of TopicPartition and start consuming."""
             print(consumer.assign(partitions))
             """Returns the current partition assignment."""
@@ -146,7 +163,8 @@ class AsyncConsumer(Consumer):
 
 if __name__ == '__main__':
     settings = AppSettings()
-    topic = settings.topic
+    topic = 'database_create'
+    settings.group_id = '17'
     kafka_settings = KafkaConsumerCredentials(bootstrap_servers=settings.kafka_broker, group_id=settings.group_id)
     kafka_settings.conf.update(
         {
@@ -155,17 +173,33 @@ if __name__ == '__main__':
     )
 
     logger.debug(kafka_settings.conf)
-    consumer = Consumer(kafka_settings.conf)
-    consumer.subscribe(topic)
+    consumer = Consumer(kafka_settings.conf, topic)
+    # consumer.command = 'reset'
     # consumer.action = action
     # consumer.poll_loop(1.5)
+    max_offset = consumer.max_offset()
+
+    count = 0
+    flag = 0
     while True:
         msg = consumer.poll(1.5)
+        offset = consumer.current_offset()
+        logger.debug(offset)
+
+        if flag == 0:
+            # То есть мы начинаем читать с выбранного оффсета
+            consumer.reset_offset(max_offset - 3)
+            logger.debug('Reset!')
+            flag = 1
+
         if msg is None:
-            print('None')
             continue
+
         msg_error = msg.error()
         if msg_error:
             logger.error(f"Consumer error: {msg_error}")
             continue
-        logger.debug(msg.value())
+        consumer.commit(msg)
+        count += 1
+        # logger.debug(msg.value())
+        logger.debug(f'{count} - {msg.key().decode("utf-8")}')
