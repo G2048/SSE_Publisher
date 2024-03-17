@@ -17,19 +17,26 @@ class Consumer:
         self._cancelled = False
         self._action = None
         self.consumer = kafka.Consumer(self.kafka_settings)
+        self.topic_partition = kafka.TopicPartition
 
-    def subscribe(self, topic: str, on_assign=None, **kwargs):
-        self._subscribe([topic], on_assign=on_assign, **kwargs)
+    def subscribe(self, topic: str, partition: int = 0, on_assign=None, **kwargs) -> list:
+        return self._subscribe([topic], partition, on_assign=on_assign, **kwargs)
 
-    def list_subscribe(self, topics: list, on_assign=None, **kwargs):
-        self._subscribe(topics, on_assign=on_assign, **kwargs)
+    def list_subscribe(self, topics: list, partition: int = 0, on_assign=None, **kwargs) -> list:
+        return self._subscribe(topics, partition, on_assign=on_assign, **kwargs)
 
-    def _subscribe(self, topics: list, on_assign=None, **kwargs):
+    def _subscribe(self, topics: list, partition: int = 0, on_assign=None, **kwargs) -> list:
         if on_assign is None:
             on_assign = self.reset_offset
         logger.debug(f'Subscribed to {topics=}!')
         logger.debug(f'{on_assign=}')
-        self.consumer.subscribe(topics, on_assign=on_assign, **kwargs)
+        for topic in topics:
+            self.consumer.assign([self.topic_partition(topic, partition=partition)])
+        # self.consumer.subscribe(topics, on_assign=on_assign, **kwargs)
+        return self.consumer.assignment()
+
+    def commit(self, message=None):
+        self.consumer.commit(message)
 
     def close(self):
         self.consumer.close()
@@ -100,16 +107,16 @@ class Consumer:
     @staticmethod
     def serialize_to_event_model(msg, **kwargs):
         return EventModel(
-            key=msg.key(),
-            message=msg.value(),
+            key=msg.key().decode('utf-8'),
+            message=msg.value().decode('utf-8'),
             **kwargs
         )
 
     @staticmethod
     def serialize_to_dict(msg, **kwargs):
         return EventModel(
-            key=msg.key(),
-            message=msg.value(),
+            key=msg.key().decode('utf-8'),
+            message=msg.value().decode('utf-8'),
             **kwargs
         ).model_dump()
 

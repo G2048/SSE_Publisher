@@ -1,7 +1,7 @@
+import json
 import socket
 import time
 import uuid
-import json
 from contextlib import asynccontextmanager
 from datetime import datetime
 
@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
 
     kafka_settings = KafkaProducerCredentials(bootstrap_servers=SETTINGS.kafka_broker)
     kafka_settings.conf.update({'client.id': socket.gethostname()})
+    kafka_settings.conf.update({'default.topic.config': {'produce.offset.report': True}})
     producer = Producer(kafka_settings.conf)
     app.state.topic = topic
     app.state.producer = producer
@@ -71,9 +72,36 @@ async def get_alert():
     return HTMLResponse(HTML_ALERT)
 
 
-@app.get("/sse/database/create")
-async def create(account_id: int):
-    return None
+@app.get("/sse/database/create/{account_id}")
+def create(
+    account_id: int,
+    producer: Producer = Depends(get_producer),
+):
+    transaction_id = str(uuid.uuid1(account_id))
+    topic = 'database_create'
+    # Send to Kafka for worker to create database
+    producer.produce(topic=topic, key=transaction_id, value='{"data": "creating database"}')
+    return {'transaction_id': transaction_id, 'topic': topic}
+
+
+# Use to:
+# var source = new EventSource("http://localhost:8666/sse/subscribe/database_create/cdde3136-e46c-11ee-9842-00000000000c");
+# source.onmessage = function(event) { console.log(event.data) };
+@app.get("/sse/subscribe/{topic}/{transaction_id}")
+def sse_stream(
+    topic: str,
+    transaction_id: uuid.UUID,
+):
+    logger.debug(f'Client {transaction_id=}')
+    logger.debug(f'Client {topic=}')
+
+    group_id = str(transaction_id)
+    transaction_id = str(transaction_id)
+    kafka_settings = KafkaConsumerCredentials(bootstrap_servers=SETTINGS.kafka_broker, group_id=group_id)
+    kafka_settings.conf.update({'enable.auto.commit': False})
+    kafka_settings.conf.update({'auto.offset.reset': 'earliest'})
+    consumer = Consumer(kafka_settings.conf)
+    return EventSourceResponse(subscribe_topic(consumer, topic, transaction_id))
 
 
 @app.get("/sse/produce")
@@ -89,10 +117,17 @@ def produce(
     return {'published': False}
 
 
-def subscribe_topic(consumer: Consumer, topic: str):
-    consumer.subscribe(topic)
-    logger.debug(f'Subscribed to {topic=}!')
-    transaction_id = uuid.uuid4()
+def subscribe_topic(consumer: Consumer, topic: str, transaction_id: str = None):
+    topic_partition = consumer.subscribe(topic)
+    logger.debug(f'Subscribe to {topic=}')
+    logger.debug(f'Subscribed to {topic_partition=}')
+    logger.debug(f'Subscribed to topic={topic_partition[0].topic}')
+    logger.debug(f'Subscribed to partition={topic_partition[0].partition}')
+
+    if transaction_id is None:
+        transaction_id = str(uuid.uuid1())
+    logger.debug(f'Transaction {transaction_id=}')
+
     while True:
         message = consumer.poll(1.0)
         if message is None:
@@ -103,8 +138,16 @@ def subscribe_topic(consumer: Consumer, topic: str):
             logger.error(f"Consumer error: {msg_error}")
             continue
 
-        time.sleep(0.5)
-        responce = consumer.convert_to_dict(message, transaction_id=transaction_id)
+        message_key = message.key().decode('utf-8')
+        if message_key != transaction_id:
+            logger.debug(f'Key {message_key} != {transaction_id=}')
+            # continue
+        else:
+            logger.debug(f'Success {message_key} == {transaction_id=} !')
+
+        consumer.commit(message)
+        # time.sleep(0.5)
+        responce = consumer.serialize_to_dict(message, transaction_id=transaction_id)
         data = {"data": responce}
         logger.debug(f'Responce {data=}')
         yield json.dumps(data)
