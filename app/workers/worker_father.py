@@ -5,10 +5,6 @@ from app.main import SETTINGS
 from event_bus import (
     Producer, Consumer, EventModel, KafkaConsumerCredentials, KafkaProducerCredentials,
 )
-from settings import LoggerSettings
-
-logger = LoggerSettings().logger
-
 
 class Worker(ABC):
     """Every worker must be created for strictly execution the specify a buisnes logic"""
