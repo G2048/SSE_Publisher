@@ -8,9 +8,10 @@ from sse_starlette import EventSourceResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse, StreamingResponse
 
+from app.workers.worker_input_output import create_database
 from dependencies import get_producer, get_topic, get_cookies, get_headers
 from event_bus import (
-    Producer, Consumer, KafkaConsumerCredentials, KafkaProducerCredentials,
+    Producer, Consumer, KafkaConsumerCredentials, KafkaProducerCredentials, TOPICS
 )
 from settings import AppSettings, LoggerSettings
 
@@ -138,7 +139,7 @@ def subscribe_topic(consumer: Consumer, transaction_id: str = None, transaction_
             continue
 
         # input_value=(1, 1710706859694)
-        timestamp = consumer.message_timestamp(message)
+        timestamp = consumer.get_message_timestamp(message)
         message_key = message.key().decode('utf-8')
         if message_key != transaction_id:
             logger.debug(f'Key {message_key} != {transaction_id=}')
@@ -158,6 +159,22 @@ def subscribe_topic(consumer: Consumer, transaction_id: str = None, transaction_
         yield json.dumps(data)
 
     consumer.close()
+
+
+
+
+@app.get("/sse/create_database")
+def sse_create_database(
+    producer: Producer = Depends(get_producer)
+):
+    topic = TOPICS.CREATING_DATABASE
+    transaction_id = str(uuid.uuid1())
+    logger.debug(f'Transaction {transaction_id=}')
+
+    kafka_settings = KafkaConsumerCredentials(bootstrap_servers=SETTINGS.kafka_broker, group_id=transaction_id)
+    consumer = Consumer(kafka_settings.conf, topic)
+
+    return EventSourceResponse(create_database(producer, consumer, transaction_id))
 
 
 @app.get("/sse/stream")

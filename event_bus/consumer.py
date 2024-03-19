@@ -38,6 +38,7 @@ class Consumer:
 
     def reset_offset(self, offset=kafka.OFFSET_BEGINNING):
         self.consumer.seek(kafka.TopicPartition(self.topic, partition=self.partition, offset=offset))
+        return self
 
     def min_offset(self):
         return self.__get_offsets()[0]
@@ -139,7 +140,7 @@ class Consumer:
         ).model_dump()
 
     @staticmethod
-    def message_to_timestamp(msg):
+    def get_message_timestamp(msg):
         return datetime.fromtimestamp(msg.timestamp()[1] / 1000).isoformat()
 
 

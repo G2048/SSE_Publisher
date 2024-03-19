@@ -1,14 +1,24 @@
+from dataclasses import dataclass
 from datetime import datetime
-from uuid import UUID, uuid4
+from typing import Optional
+from uuid import UUID, uuid1
 
 from pydantic import BaseModel, Field, field_serializer
+
+
+@dataclass
+class TOPICS:
+    CREATING_DATABASE = 'CREATING_DATABASE'
+    CREATED_DATABASE = 'EOF_CREATED_DATABASE'
+    ERRORS = 'ERRORS'
 
 
 class EventModel(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     key: str = None
     message: str
-    transaction_id: UUID = Field(default_factory=uuid4)
+    transaction_id: UUID = Field(default_factory=uuid1)
+    last_offset: Optional[int] = None
 
     @field_serializer('timestamp')
     def timestamp_to_str(self, value, _info):
