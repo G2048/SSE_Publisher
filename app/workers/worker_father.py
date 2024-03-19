@@ -31,17 +31,17 @@ class Worker(ABC):
 
     def __setup_error_consumer(self):
         kafka_settings = KafkaConsumerCredentials(bootstrap_servers=SETTINGS.kafka_broker, group_id=self.transaction_id)
-        self.consumer = Consumer(kafka_settings.conf, self.output_topic)
+        self.error_consumer = Consumer(kafka_settings.conf, self.output_topic)
 
     # subscribe to topic for created database
     def subscribe(self):
         self.__setup_consumer(self.transaction_id)
 
     # Если действие (action) успешно, то тогда публикуем событие
-    def success(self):
+    def emit_success(self):
         self.__publish(self.input_topic)
 
-    def error(self):
+    def emit_error(self):
         self.__publish(self.error_topic)
 
     def __publish(self, topic: str):
@@ -57,6 +57,6 @@ class Worker(ABC):
         self.producer.produce(topic=topic, key=self.transation_id, value=event_data.json())
 
     @abstractmethod
-    def action(self):
+    def run(self):
         """ action for specify a buisnes logic """
         pass

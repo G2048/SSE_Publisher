@@ -10,7 +10,7 @@ logger = LoggerSettings().logger
 
 class WorkerCreating(Worker):
 
-    def action(self):
+    def run(self):
         self.polling_message()
 
     # The strong operation
@@ -57,3 +57,4 @@ if __name__ == '__main__':
     error_topic = TOPICS.ERROR
 
     worker = WorkerCreating(recived_topic, consumed_topic, error_topic)
+    worker.run()

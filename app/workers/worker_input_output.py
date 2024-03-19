@@ -11,7 +11,7 @@ logger = LoggerSettings().logger
 
 class WorkerInputOutput(Worker):
 
-    def action(self):
+    def run(self):
         self.polling_message()
 
     def polling_message(self):
@@ -43,3 +43,4 @@ if __name__ == '__main__':
     error_topic = TOPICS.ERROR
 
     worker = WorkerInputOutput(recived_topic, consumed_topic, error_topic)
+    worker.run()
