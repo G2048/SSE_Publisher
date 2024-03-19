@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2024-03-19T16:53:04.653Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="eyXfap6x0irYFDABAbaG" version="24.0.6" type="device">
+<mxfile host="app.diagrams.net" modified="2024-03-19T18:16:33.178Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="oHIhJcOGxsqkVJYF5cSR" version="24.0.6" type="device">
   <diagram name="Страница — 1" id="8Q013fQCWC9YTyiD1MKi">
     <mxGraphModel dx="970" dy="540" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -20,7 +20,7 @@
         <mxCell id="kbCaMPTGr7TVtiiLFRXt-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="kbCaMPTGr7TVtiiLFRXt-2" target="kbCaMPTGr7TVtiiLFRXt-22">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="kbCaMPTGr7TVtiiLFRXt-2" value="Worker 1" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="kbCaMPTGr7TVtiiLFRXt-2" value="Worker 1&lt;div&gt;Polling...&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="65" y="510" width="117.5" height="60" as="geometry" />
         </mxCell>
         <mxCell id="kbCaMPTGr7TVtiiLFRXt-3" value="/sse/create_database" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
