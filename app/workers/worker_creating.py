@@ -1,4 +1,5 @@
 import json
+from datetime import time
 
 from event_bus import TOPICS
 from settings import LoggerSettings
@@ -11,6 +12,11 @@ class WorkerCreating(Worker):
 
     def action(self):
         self.polling_message()
+
+    # The strong operation
+    def __create_database(self) -> bool:
+        time.sleep(5)
+        return True
 
     def polling_message(self):
         max_offset = self.consumer.max_offset()
@@ -25,11 +31,17 @@ class WorkerCreating(Worker):
             msg_error = message.error()
             if msg_error:
                 logger.error(f"Consumer error: {msg_error}")
+                self.error()
                 continue
 
             # This is code place for creating database
             # Is bigger and more complex actions for production logic
             # but it's just example
+            result = self.__create_database()
+            if not result:
+                self.error()
+
+            self.success()
             timestamp = self.consumer.get_message_timestamp(message)
             responce = self.consumer.serialize_to_dict(message, transaction_id=self.transaction_id, timestamp=timestamp)
             data = {"data": responce}

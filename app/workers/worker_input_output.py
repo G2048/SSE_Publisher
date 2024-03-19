@@ -1,5 +1,6 @@
 import json
 
+from app.workers.worker_father import Worker
 from event_bus import (
     TOPICS,
 )
@@ -8,17 +9,14 @@ from settings import LoggerSettings
 logger = LoggerSettings().logger
 
 
-class WorkerInputOutput:
+class WorkerInputOutput(Worker):
 
     def action(self):
         self.polling_message()
 
     def polling_message(self):
-        max_offset = self.consumer.max_offset()
         while True:
             message = self.consumer.poll(1.0)
-            # current_offset = consumer.current_offset()
-            # logger.debug(f'{current_offset=}')
 
             if message is None:
                 continue
@@ -26,16 +24,10 @@ class WorkerInputOutput:
             msg_error = message.error()
             if msg_error:
                 logger.error(f"Consumer error: {msg_error}")
+                self.error()
                 continue
 
-            # message_key = message.key().decode('utf-8')
-            # if message_key != transaction_id:
-            #     logger.debug(f'Key {message_key} != {transaction_id=}')
-            #     continue
-            # else:
-            #     logger.debug(f'Success {message_key} == {transaction_id=} !')
-            #     consumer.commit(message)
-
+            self.success()
             timestamp = self.consumer.get_message_timestamp(message)
             responce = self.consumer.serialize_to_dict(message, transaction_id=self.transaction_id, timestamp=timestamp)
             data = {"data": responce}

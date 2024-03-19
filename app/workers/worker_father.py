@@ -37,18 +37,24 @@ class Worker(ABC):
     def subscribe(self):
         self.__setup_consumer(self.transaction_id)
 
-    # Если действие (.action) успешно, то тогда публикуем событие
-    def publish(self):
+    # Если действие (action) успешно, то тогда публикуем событие
+    def success(self):
+        self.__publish(self.input_topic)
+
+    def error(self):
+        self.__publish(self.error_topic)
+
+    def __publish(self, topic: str):
         last_offset = self.consumer.max_offset()
         # Prepare event for create database
         event_data = EventModel(
             key=self.transaction_id,
-            message=self.input_topic,
+            message=topic,
             transaction_id=self.transaction_id,
             last_offset=last_offset
         )
         # Send event for create database
-        self.producer.produce(topic=self.input_topic, key=self.transation_id, value=event_data.json())
+        self.producer.produce(topic=topic, key=self.transation_id, value=event_data.json())
 
     @abstractmethod
     def action(self):
