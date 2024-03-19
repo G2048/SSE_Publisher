@@ -31,7 +31,7 @@ class WorkerCreating(Worker):
             msg_error = message.error()
             if msg_error:
                 logger.error(f"Consumer error: {msg_error}")
-                self.error()
+                self.emit_error()
                 continue
 
             # This is code place for creating database
@@ -39,9 +39,9 @@ class WorkerCreating(Worker):
             # but it's just example
             result = self.__create_database()
             if not result:
-                self.error()
+                self.emit_error()
 
-            self.success()
+            self.emit_success()
             timestamp = self.consumer.get_message_timestamp(message)
             responce = self.consumer.serialize_to_dict(message, transaction_id=self.transaction_id, timestamp=timestamp)
             data = {"data": responce}

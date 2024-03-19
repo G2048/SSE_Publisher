@@ -24,10 +24,10 @@ class WorkerInputOutput(Worker):
             msg_error = message.error()
             if msg_error:
                 logger.error(f"Consumer error: {msg_error}")
-                self.error()
+                self.emit_error()
                 continue
 
-            self.success()
+            self.emit_success()
             timestamp = self.consumer.get_message_timestamp(message)
             responce = self.consumer.serialize_to_dict(message, transaction_id=self.transaction_id, timestamp=timestamp)
             data = {"data": responce}
